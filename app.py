@@ -9,7 +9,6 @@ from ftplib import FTP
 import shutil  
 from dotenv import load_dotenv
 from apscheduler.schedulers.background import BackgroundScheduler
-from serverless_http import ServerlessHttp
 
 load_dotenv()
 
@@ -114,5 +113,3 @@ def start_scheduler():
 if __name__ == '__main__':
     start_scheduler()
     app.run(debug=True)
-    
-app = ServerlessHttp(app)

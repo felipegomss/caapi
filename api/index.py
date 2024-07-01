@@ -1,3 +1,6 @@
+from flask import Flask, jsonify
+import json
+
 import json
 import pandas as pd
 import zipfile
@@ -5,7 +8,8 @@ from io import BytesIO
 from ftplib import FTP
 import shutil  
 from dotenv import load_dotenv
-import os
+from apscheduler.schedulers.background import BackgroundScheduler
+from serverless_http import ServerlessHttp
 
 load_dotenv()
 
@@ -79,5 +83,36 @@ def download_and_process_data():
     finally:
         ftp.quit()
 
+app = Flask(__name__)
 
-download_and_process_data()
+JSON_FILE_PATH = 'output/tgg_export_caepi_valid.json'
+
+@app.route('/ca/<ca_id>', methods=['GET'])
+def get_ca_info(ca_id):
+  try:
+    with open(JSON_FILE_PATH, 'r', encoding='utf-8') as json_file:
+      data = json.load(json_file)
+
+    ca_info = [ca for ca in data if str(ca.get('#NRRegistroCA')) == str(ca_id)]
+    if ca_info:
+      return jsonify(ca_info), 200
+    else:
+      return jsonify({"erro": f"CA {ca_id} não encontrado"}), 404
+  except FileNotFoundError:
+    download_and_process_data()
+    return jsonify({"erro": "Lista de CA não disponível, mas estamos tentando processá-lo agora. Por favor, tente novamente em alguns minutos."}), 500
+  except ValueError:
+    return jsonify({"erro": "Formato de ID CA inválido"}), 400
+  except Exception as e:
+    return jsonify({"erro": "Ocorreu um erro inesperado. Por favor, tente novamente mais tarde."}), 500
+
+def start_scheduler():
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(download_and_process_data, 'cron', hour=23)
+    scheduler.start()
+
+if __name__ == '__main__':
+    start_scheduler()
+    app.run(debug=True)
+    
+app = ServerlessHttp(app)

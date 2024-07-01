@@ -1,0 +1,6 @@
+# Ignorar a pasta caapi
+/caapi/
+
+# Ignorar todos os arquivos dentro da pasta output
+/output/*
+!output/.gitkeep
